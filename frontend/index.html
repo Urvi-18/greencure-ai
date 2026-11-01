@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plant Disease Detection</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: #f1f7f2; margin: 0; padding: 24px; color: #1f2d23; }
+  .card { max-width: 520px; margin: 0 auto; background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 4px 18px rgba(0,0,0,.08); }
+  h1 { margin: 0 0 4px; font-size: 1.5rem; color: #2e7d32; }
+  p.sub { margin: 0 0 18px; color: #5b6b60; font-size: .95rem; }
+  #drop { border: 2px dashed #9ccc9f; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; }
+  #drop:hover { background: #f6fbf6; }
+  #preview { max-width: 100%; max-height: 280px; border-radius: 10px; display: none; margin: 0 auto; }
+  button { width: 100%; margin-top: 16px; padding: 12px; border: 0; border-radius: 10px; background: #2e7d32; color: #fff; font-size: 1rem; cursor: pointer; }
+  button:disabled { background: #a5c9a7; cursor: not-allowed; }
+  #result { margin-top: 20px; display: none; }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .8rem; background: #e8f5e9; color: #2e7d32; }
+  .tag.warn { background: #fff3e0; color: #e65100; }
+  .name { font-size: 1.3rem; font-weight: 600; margin: 8px 0 2px; }
+  .bar { height: 10px; background: #e0e8e1; border-radius: 6px; overflow: hidden; margin: 6px 0 14px; }
+  .bar > div { height: 100%; background: #43a047; }
+  .row { display: flex; justify-content: space-between; font-size: .9rem; padding: 4px 0; color: #4a5a4f; }
+  #msg { background: #fff3e0; color: #8a4b00; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: .9rem; }
+  #error { color: #c62828; margin-top: 14px; font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Plant Disease Detection</h1>
+  <p class="sub">Upload a clear photo of a single leaf.</p>
+
+  <div id="drop" onclick="document.getElementById('file').click()">
+    <img id="preview" alt="Preview">
+    <span id="hint">Click to choose an image (JPG or PNG)</span>
+  </div>
+  <input type="file" id="file" accept="image/jpeg,image/png" hidden>
+
+  <button id="btn" disabled>Detect disease</button>
+  <div id="error"></div>
+
+  <div id="result">
+    <span class="tag" id="tag"></span>
+    <div class="name" id="name"></div>
+    <div id="conf-text" class="row"></div>
+    <div class="bar"><div id="conf-bar"></div></div>
+    <div id="msg" style="display:none"></div>
+    <h4 style="margin:16px 0 4px">Top 3 predictions</h4>
+    <div id="top3"></div>
+  </div>
+</div>
+
+<script>
+  const API = "http://127.0.0.1:8000/predict";
+  const fileInput = document.getElementById("file");
+  const preview = document.getElementById("preview");
+  const btn = document.getElementById("btn");
+  const err = document.getElementById("error");
+  const result = document.getElementById("result");
+
+  const pretty = c => c.replace("___", " - ").replace(/_/g, " ");
+
+  fileInput.addEventListener("change", () => {
+    const f = fileInput.files[0];
+    if (!f) return;
+    preview.src = URL.createObjectURL(f);
+    preview.style.display = "block";
+    document.getElementById("hint").style.display = "none";
+    btn.disabled = false;
+    result.style.display = "none";
+    err.textContent = "";
+  });
+
+  btn.addEventListener("click", async () => {
+    const f = fileInput.files[0];
+    if (!f) return;
+    btn.disabled = true;
+    btn.textContent = "Analyzing...";
+    err.textContent = "";
+
+    const form = new FormData();
+    form.append("file", f);
+
+    try {
+      const res = await fetch(API, { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Something went wrong.");
+      show(data);
+    } catch (e) {
+      err.textContent = e.message.includes("Failed to fetch")
+        ? "Cannot reach the server. Is uvicorn running?"
+        : e.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Detect disease";
+    }
+  });
+
+  function show(d) {
+    const pct = (d.confidence * 100).toFixed(1);
+    const tag = document.getElementById("tag");
+    tag.textContent = d.is_confident ? "Confident" : "Low confidence";
+    tag.className = "tag" + (d.is_confident ? "" : " warn");
+    document.getElementById("name").textContent = d.plant + " - " + d.condition;
+    document.getElementById("conf-text").innerHTML = "<span>Confidence</span><span>" + pct + "%</span>";
+    document.getElementById("conf-bar").style.width = pct + "%";
+
+    const msg = document.getElementById("msg");
+    msg.style.display = d.message ? "block" : "none";
+    msg.textContent = d.message || "";
+
+    document.getElementById("top3").innerHTML = d.top_3
+      .map(t => "<div class='row'><span>" + pretty(t.class) + "</span><span>" + (t.confidence * 100).toFixed(1) + "%</span></div>")
+      .join("");
+    result.style.display = "block";
+  }
+</script>
+</body>
+</html>
