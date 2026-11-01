@@ -1,6 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 from backend.model_utils import predict
 
 CONFIDENCE_THRESHOLD = 0.60
@@ -47,3 +48,5 @@ async def predict_endpoint(file: UploadFile = File(...)):
         "message": None if confident else "Not sure about this one. Try a clearer, closer photo of a single leaf.",
         "top_3": top,
     }
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+app.mount("/app", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

@@ -52,7 +52,7 @@
 </div>
 
 <script>
-  const API = "http://127.0.0.1:8000/predict";
+  const API = location.protocol === "file:" ? "http://127.0.0.1:8000/predict" : "/predict";  
   const fileInput = document.getElementById("file");
   const preview = document.getElementById("preview");
   const btn = document.getElementById("btn");
