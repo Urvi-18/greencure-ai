@@ -13,17 +13,41 @@
   <section class="hero">
     <span class="pill">AI Agriculture Diagnostics</span>
     <h1>Instant Plant Disease Detection</h1>
-    <p>Upload a photo of an affected leaf to detect the disease and see how confident the model is.</p>
+    <p>Upload a photo of an affected leaf or use your device camera to detect the disease and see how confident the model is.</p>
   </section>
 
   <section class="grid">
     <div class="card">
-      <h2>Upload a leaf photo</h2>
-      <div id="drop" onclick="document.getElementById('file').click()">
-        <img id="preview" alt="Preview">
-        <span id="hint">Click to choose an image (JPG or PNG)</span>
+      <div class="card-head">
+        <h2>Upload &amp; Capture</h2>
+        <div class="toggle">
+          <button type="button" id="tab-upload" class="on">⬆ Upload</button>
+          <button type="button" id="tab-camera">📷 Camera</button>
+        </div>
       </div>
-      <input type="file" id="file" accept="image/jpeg,image/png" hidden>
+
+      <div id="pane-upload">
+        <div id="drop" onclick="document.getElementById('file').click()">
+          <img id="preview" alt="Preview">
+          <span id="hint">Click to choose an image (JPG or PNG)</span>
+        </div>
+        <input type="file" id="file" accept="image/jpeg,image/png" hidden>
+      </div>
+
+      <div id="pane-camera" style="display:none">
+        <div class="cam-box">
+          <video id="video" autoplay playsinline muted></video>
+          <img id="shot" alt="Captured photo" style="display:none">
+        </div>
+        <div class="cam-actions">
+          <button type="button" id="capture" class="btn-ghost">Capture photo</button>
+          <button type="button" id="retake" class="btn-ghost" style="display:none">Retake</button>
+          <button type="button" id="cam-fallback" class="btn-ghost" style="display:none">Open phone camera</button>
+        </div>
+        <p id="cam-note" class="supported"></p>
+        <input type="file" id="camInput" accept="image/*" capture="environment" hidden>
+      </div>
+
       <button id="btn" class="btn" disabled>Detect disease</button>
       <div id="error"></div>
       <p class="supported"><b>Supported plants:</b> Apple, Blueberry, Cherry, Corn, Grape, Orange, Peach, Pepper (bell), Potato, Raspberry, Soybean, Squash, Strawberry, Tomato.</p>
@@ -50,32 +74,136 @@
 <script src="layout.js"></script>
 <script>
   const API = location.protocol === "file:" ? "http://127.0.0.1:8000/predict" : "/predict";
-  const fileInput = document.getElementById("file");
-  const preview = document.getElementById("preview");
-  const btn = document.getElementById("btn");
-  const err = document.getElementById("error");
+  const $ = id => document.getElementById(id);
+  const preview = $("preview");
+  const btn = $("btn");
+  const err = $("error");
   const pretty = c => c.replace("___", " - ").replace(/_/g, " ");
 
-  fileInput.addEventListener("change", () => {
-    const f = fileInput.files[0];
+  let currentFile = null;
+  let stream = null;
+  let mode = "upload";
+
+  function setFile(f) {
+    currentFile = f;
+    btn.disabled = !f;
+    err.textContent = "";
+    $("result").style.display = "none";
+    $("placeholder").style.display = "block";
+  }
+
+  /* ---------- Upload ---------- */
+  $("file").addEventListener("change", () => {
+    const f = $("file").files[0];
     if (!f) return;
     preview.src = URL.createObjectURL(f);
     preview.style.display = "block";
-    document.getElementById("hint").style.display = "none";
-    btn.disabled = false;
-    err.textContent = "";
-    document.getElementById("result").style.display = "none";
-    document.getElementById("placeholder").style.display = "block";
+    $("hint").style.display = "none";
+    setFile(f);
   });
 
-  btn.addEventListener("click", async () => {
-    const f = fileInput.files[0];
+  /* ---------- Mode switch ---------- */
+  function showMode(m) {
+    mode = m;
+    const cam = m === "camera";
+    $("tab-upload").classList.toggle("on", !cam);
+    $("tab-camera").classList.toggle("on", cam);
+    $("pane-upload").style.display = cam ? "none" : "block";
+    $("pane-camera").style.display = cam ? "block" : "none";
+    stopCamera();
+    setFile(null);
+    preview.style.display = "none";
+    preview.removeAttribute("src");
+    $("hint").style.display = "inline";
+    $("file").value = "";
+    $("camInput").value = "";
+    $("shot").style.display = "none";
+    $("retake").style.display = "none";
+    if (cam) startCamera();
+  }
+  $("tab-upload").addEventListener("click", () => showMode("upload"));
+  $("tab-camera").addEventListener("click", () => showMode("camera"));
+
+  /* ---------- Camera ---------- */
+  async function startCamera() {
+    $("cam-note").textContent = "";
+    $("cam-fallback").style.display = "none";
+    $("capture").style.display = "inline-block";
+    $("video").style.display = "block";
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return camUnavailable("Live camera needs HTTPS or localhost. Use your phone's camera app instead.");
+    }
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } }, audio: false
+      });
+      if (mode !== "camera") { s.getTracks().forEach(t => t.stop()); return; }
+      stream = s;
+      $("video").srcObject = s;
+    } catch (e) {
+      camUnavailable("Could not access the camera (permission denied or no camera found).");
+    }
+  }
+
+  function camUnavailable(text) {
+    $("video").style.display = "none";
+    $("capture").style.display = "none";
+    $("cam-fallback").style.display = "inline-block";
+    $("cam-note").textContent = text;
+  }
+
+  function stopCamera() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    $("video").srcObject = null;
+  }
+
+  $("capture").addEventListener("click", () => {
+    const v = $("video");
+    if (!v.videoWidth) return;
+    const c = document.createElement("canvas");
+    c.width = v.videoWidth;
+    c.height = v.videoHeight;
+    c.getContext("2d").drawImage(v, 0, 0);
+    c.toBlob(blob => {
+      const f = new File([blob], "capture.jpg", { type: "image/jpeg" });
+      $("shot").src = URL.createObjectURL(blob);
+      $("shot").style.display = "block";
+      v.style.display = "none";
+      $("capture").style.display = "none";
+      $("retake").style.display = "inline-block";
+      stopCamera();
+      setFile(f);
+    }, "image/jpeg", 0.92);
+  });
+
+  $("retake").addEventListener("click", () => {
+    $("shot").style.display = "none";
+    $("retake").style.display = "none";
+    setFile(null);
+    startCamera();
+  });
+
+  $("cam-fallback").addEventListener("click", () => $("camInput").click());
+  $("camInput").addEventListener("change", () => {
+    const f = $("camInput").files[0];
     if (!f) return;
+    $("shot").src = URL.createObjectURL(f);
+    $("shot").style.display = "block";
+    setFile(f);
+  });
+
+  /* ---------- Detect ---------- */
+  btn.addEventListener("click", async () => {
+    if (!currentFile) return;
+    if (!["image/jpeg", "image/png"].includes(currentFile.type)) {
+      err.textContent = "Please use a JPG or PNG image.";
+      return;
+    }
     btn.disabled = true;
     btn.textContent = "Analyzing...";
     err.textContent = "";
     const form = new FormData();
-    form.append("file", f);
+    form.append("file", currentFile);
     try {
       const res = await fetch(API, { method: "POST", body: form });
       const data = await res.json();
@@ -92,20 +220,20 @@
 
   function show(d) {
     const pct = (d.confidence * 100).toFixed(1);
-    document.getElementById("name").textContent = d.plant + " - " + d.condition;
-    const tag = document.getElementById("tag");
+    $("name").textContent = d.plant + " - " + d.condition;
+    const tag = $("tag");
     tag.textContent = d.is_confident ? "Confident" : "Low confidence";
     tag.className = "tag" + (d.is_confident ? "" : " warn");
-    document.getElementById("conf-text").textContent = pct + "%";
-    document.getElementById("conf-bar").style.width = pct + "%";
-    const msg = document.getElementById("msg");
+    $("conf-text").textContent = pct + "%";
+    $("conf-bar").style.width = pct + "%";
+    const msg = $("msg");
     msg.style.display = d.message ? "block" : "none";
     msg.textContent = d.message || "";
-    document.getElementById("top3").innerHTML = d.top_3
+    $("top3").innerHTML = d.top_3
       .map(t => `<div class="row"><span>${pretty(t.class)}</span><b>${(t.confidence * 100).toFixed(1)}%</b></div>`)
       .join("");
-    document.getElementById("placeholder").style.display = "none";
-    document.getElementById("result").style.display = "block";
+    $("placeholder").style.display = "none";
+    $("result").style.display = "block";
   }
 </script>
 </body>
