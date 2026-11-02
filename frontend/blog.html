@@ -8,10 +8,124 @@
 </head>
 <body>
 <header id="site-header" class="site-header"></header>
+
 <main class="container">
-  <section class="hero"><h1>Plant Care Blog</h1><p>Coming soon.</p></section>
+  <section class="hero">
+    <span class="pill">Learn &amp; Explore</span>
+    <h1>Plant Care Blog</h1>
+    <p>Read about plant diseases, pests and care practices. Articles are loaded live from Wikipedia.</p>
+  </section>
+
+  <form id="search" class="blog-search">
+    <input id="q" type="search" placeholder="Search plant topics (e.g. tomato blight, mulching, neem)" aria-label="Search plant topics">
+    <button type="submit">Search</button>
+    <button type="button" id="reset" class="alt" style="display:none">Clear</button>
+  </form>
+
+  <p id="status" class="blog-status"></p>
+  <section id="posts" class="posts"></section>
+  <p class="tp-note" style="margin-bottom:30px">Article text and images come from Wikipedia and are available under CC BY-SA. Follow each link for the full article.</p>
 </main>
+
 <footer id="site-footer" class="site-footer"></footer>
+
 <script src="layout.js"></script>
+<script>
+  const TOPICS = ["Plant pathology", "Phytophthora infestans", "Powdery mildew", "Rust (fungus)",
+    "Crop rotation", "Integrated pest management", "Mulch", "Compost",
+    "Drip irrigation", "Fungicide", "Organic farming", "Plant disease resistance"];
+  const SUMMARY = "https://en.wikipedia.org/api/rest_v1/page/summary/";
+  const SEARCH = "https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*&srlimit=8&srsearch=";
+  const postsEl = document.getElementById("posts");
+  const statusEl = document.getElementById("status");
+
+  async function getSummary(title) {
+    const res = await fetch(SUMMARY + encodeURIComponent(title.replace(/ /g, "_")));
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const d = await res.json();
+    if (d.type === "disambiguation" || !d.extract) return null;
+    return d;
+  }
+
+  function card(d) {
+    const el = document.createElement("article");
+    el.className = "post";
+    if (d.thumbnail && d.thumbnail.source) {
+      const img = document.createElement("img");
+      img.src = d.thumbnail.source;
+      img.alt = d.title;
+      img.loading = "lazy";
+      el.appendChild(img);
+    } else {
+      const n = document.createElement("div");
+      n.className = "noimg";
+      n.textContent = "🌿";
+      el.appendChild(n);
+    }
+    const body = document.createElement("div");
+    body.className = "body";
+    const h = document.createElement("h3");
+    h.textContent = d.title;
+    body.appendChild(h);
+    if (d.description) {
+      const s = document.createElement("div");
+      s.className = "desc";
+      s.textContent = d.description;
+      body.appendChild(s);
+    }
+    const p = document.createElement("p");
+    p.textContent = d.extract;
+    body.appendChild(p);
+    const a = document.createElement("a");
+    a.className = "more";
+    a.textContent = "Read full article →";
+    a.href = d.content_urls.desktop.page;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    body.appendChild(a);
+    el.appendChild(body);
+    return el;
+  }
+
+  async function render(titles, label) {
+    postsEl.innerHTML = "";
+    statusEl.textContent = "Loading articles...";
+    const results = await Promise.allSettled(titles.map(getSummary));
+    const seen = new Set();
+    let n = 0;
+    results.forEach(r => {
+      if (r.status === "fulfilled" && r.value && !seen.has(r.value.title)) {
+        seen.add(r.value.title);
+        postsEl.appendChild(card(r.value));
+        n++;
+      }
+    });
+    statusEl.textContent = n ? label : "No articles found. Check your internet connection or try another search.";
+  }
+
+  document.getElementById("search").addEventListener("submit", async e => {
+    e.preventDefault();
+    const q = document.getElementById("q").value.trim();
+    if (!q) return;
+    statusEl.textContent = "Searching...";
+    try {
+      const res = await fetch(SEARCH + encodeURIComponent(q + " plant"));
+      const data = await res.json();
+      const titles = data.query.search.map(s => s.title);
+      document.getElementById("reset").style.display = "inline-block";
+      await render(titles, 'Results for "' + q + '"');
+    } catch (err) {
+      statusEl.textContent = "Search failed. Check your internet connection.";
+    }
+  });
+
+  document.getElementById("reset").addEventListener("click", () => {
+    document.getElementById("q").value = "";
+    document.getElementById("reset").style.display = "none";
+    render(TOPICS, "Featured topics");
+  });
+
+  render(TOPICS, "Featured topics");
+</script>
 </body>
 </html>
