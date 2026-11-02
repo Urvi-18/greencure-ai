@@ -1,0 +1,60 @@
+:root{
+  --teal:#0f766e; --bg:#f6f8f7; --card:#fff; --text:#16231d; --muted:#5f7068; --line:#e3ebe6;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+.container{max-width:1180px;margin:0 auto;padding:0 20px}
+
+/* Header */
+.site-header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+.site-header .container{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:12px;padding-bottom:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand-logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#10b981,#0f766e);display:grid;place-items:center;font-size:20px}
+.brand-name{font-weight:700;font-size:1.15rem;color:var(--teal);line-height:1.1}
+.brand-sub{font-size:.65rem;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.nav{display:flex;gap:4px;background:#f1f5f3;padding:4px;border-radius:12px;border:1px solid var(--line)}
+.nav a{padding:8px 14px;border-radius:9px;text-decoration:none;font-size:.92rem;font-weight:500;color:var(--muted);white-space:nowrap}
+.nav a:hover{color:var(--text)}
+.nav a.active{background:#fff;color:var(--teal);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+@media (max-width:760px){.nav{order:3;width:100%;overflow-x:auto}.nav a{flex:1;text-align:center}}
+
+/* Hero */
+.hero{margin:24px 0;border-radius:24px;padding:36px 32px;color:#fff;background:linear-gradient(135deg,#064e3b 0%,#0f766e 100%)}
+.hero .pill{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);padding:4px 12px;border-radius:20px;font-size:.8rem;margin-bottom:14px}
+.hero h1{margin:0 0 10px;font-size:clamp(1.6rem,4vw,2.5rem);line-height:1.15}
+.hero p{margin:0;max-width:640px;opacity:.9}
+
+/* Cards */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:40px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.04)}
+.card h2{margin:0 0 16px;font-size:1.2rem}
+#drop{border:2px dashed #9fd8c4;border-radius:14px;padding:18px;text-align:center;cursor:pointer;background:#f7fcfa;min-height:200px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}
+#drop:hover{background:#effaf5}
+#preview{max-width:100%;max-height:300px;border-radius:10px;display:none}
+.btn{width:100%;margin-top:16px;padding:14px;border:0;border-radius:12px;background:linear-gradient(135deg,#10b981,#0f766e);color:#fff;font-size:1rem;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.supported{margin-top:14px;font-size:.82rem;color:var(--muted)}
+#error{color:#c62828;margin-top:12px;font-size:.9rem}
+.placeholder{color:var(--muted);text-align:center;padding:60px 10px}
+
+/* Result */
+.label{font-size:.75rem;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.tag{display:inline-block;padding:3px 12px;border-radius:20px;font-size:.8rem;background:#e8f5e9;color:#2e7d32}
+.tag.warn{background:#fff3e0;color:#e65100}
+.name{font-size:1.4rem;font-weight:700;margin:6px 0 14px}
+.row{display:flex;justify-content:space-between;gap:12px;font-size:.92rem;padding:8px 12px;background:#f7faf8;border-radius:10px;margin-top:6px}
+.bar{height:10px;background:#e0e8e1;border-radius:6px;overflow:hidden;margin:8px 0 18px}
+.bar>div{height:100%;background:#10b981}
+#msg{background:#fff7ed;color:#8a4b00;padding:10px 12px;border-radius:10px;margin-bottom:14px;font-size:.9rem}
+
+/* Footer */
+.site-footer{background:#0f1c2e;color:#cbd5e1;margin-top:40px;padding:36px 0 20px}
+.footer-top{display:flex;justify-content:space-between;gap:28px;flex-wrap:wrap}
+.footer-brand{font-size:1.15rem;font-weight:700;color:#34d399;margin-bottom:6px}
+.people{display:flex;gap:32px;flex-wrap:wrap}
+.person b{display:block;color:#fff;margin-bottom:8px}
+.person .links{display:flex;gap:8px;flex-wrap:wrap}
+.person .links a{padding:6px 12px;border-radius:8px;background:rgba(255,255,255,.08);text-decoration:none;font-size:.85rem;color:#e2e8f0}
+.person .links a:hover{background:rgba(255,255,255,.18)}
+.footer-bottom{margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,.1);font-size:.8rem;color:#94a3b8;text-align:center}
