@@ -64,6 +64,7 @@
         <div id="msg" style="display:none"></div>
         <div class="label">Top 3 predictions</div>
         <div id="top3"></div>
+        <div id="treatment" style="display:none"></div>
       </div>
     </div>
   </section>
@@ -232,6 +233,25 @@
     $("top3").innerHTML = d.top_3
       .map(t => `<div class="row"><span>${pretty(t.class)}</span><b>${(t.confidence * 100).toFixed(1)}%</b></div>`)
       .join("");
+
+    /* Treatment plan (only sent by the server when the result is confident) */
+    const tp = $("treatment");
+    if (d.treatment) {
+      const li = arr => arr.map(x => `<li>${x}</li>`).join("");
+      tp.innerHTML = `
+        <h3 class="tp-title">${d.is_healthy ? "Plant Health Summary" : "Recommended Treatment &amp; Solution Plan"}</h3>
+        <div class="tp-grid">
+          <div class="tp-card about"><div class="tp-label">About</div><p>${d.treatment.about}</p></div>
+          <div class="tp-card treat"><div class="tp-label">${d.is_healthy ? "Action" : "Treatment"}</div><ul>${li(d.treatment.treatment)}</ul></div>
+          <div class="tp-card prev"><div class="tp-label">Prevention</div><ul>${li(d.treatment.prevention)}</ul></div>
+        </div>
+        <p class="tp-note">General guidance only. For serious or widespread cases, consult a local agriculture expert.</p>`;
+      tp.style.display = "block";
+    } else {
+      tp.innerHTML = "";
+      tp.style.display = "none";
+    }
+
     $("placeholder").style.display = "none";
     $("result").style.display = "block";
   }

@@ -69,3 +69,18 @@ body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;b
 .cam-actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
 .btn-ghost{flex:1;min-width:140px;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--teal);font-weight:600;cursor:pointer}
 .btn-ghost:hover{background:#f1faf6}
+/* Treatment plan */
+.tp-title{margin:22px 0 10px;font-size:1.05rem}
+.tp-grid{display:grid;gap:10px}
+.tp-card{border-radius:12px;padding:12px 14px;border:1px solid var(--line);font-size:.9rem}
+.tp-card p{margin:0}
+.tp-card ul{margin:0;padding-left:18px}
+.tp-card li{margin:3px 0}
+.tp-label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.tp-card.about{background:#f0f9ff;border-color:#d6ebf7}
+.tp-card.about .tp-label{color:#0369a1}
+.tp-card.treat{background:#f0fbf6;border-color:#cdeedd}
+.tp-card.treat .tp-label{color:#0f766e}
+.tp-card.prev{background:#f5f5ff;border-color:#dedcf8}
+.tp-card.prev .tp-label{color:#4338ca}
+.tp-note{margin:12px 0 0;font-size:.78rem;color:var(--muted)}
