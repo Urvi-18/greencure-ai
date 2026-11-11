@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.model_utils import predict
 import json
 
-CONFIDENCE_THRESHOLD = 0.85
+CONFIDENCE_THRESHOLD = 0.60
 MAX_SIZE = 5 * 1024 * 1024  # 5 MB
 TREATMENTS = json.loads((Path(__file__).resolve().parent / "treatments.json").read_text(encoding="utf-8"))
 
@@ -47,12 +47,8 @@ async def predict_endpoint(file: UploadFile = File(...)):
         "condition": condition.replace("_", " "),
         "confidence": best["confidence"],
         "is_confident": confident,
-        "message": None if confident else "Not sure about this one. It may not be a leaf from a supported plant. Try a clear, close photo of a single leaf.",
-        "is_healthy": condition == "healthy",
-        "treatment": TREATMENTS.get(best["class"]) if confident else None,
+        "message": None if confident else "Not sure about this one. Try a clearer, closer photo of a single leaf.",
         "top_3": top,
     }
-
-
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 app.mount("/app", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

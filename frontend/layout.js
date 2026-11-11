@@ -1,4 +1,4 @@
-const BRAND = "AgriCure AI";
+const BRAND = "GreenCure AI";
 const PAGES = [
   { href: "index.html", label: "🔍 Scan & Detect" },
   { href: "blog.html", label: "📖 Plant Care Blog" },

@@ -3,15 +3,176 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mini Game</title>
+<title>GreenCure AI - Mini Game</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header id="site-header" class="site-header"></header>
+
 <main class="container">
-  <section class="hero"><h1>Mini Game</h1><p>Coming soon.</p></section>
+  <section class="hero">
+    <span class="pill">Take a break</span>
+    <h1>Mini Game: Leaf Hopper</h1>
+    <p>Help the sprout jump over the pests. Press Space or ↑ on a keyboard, or tap the game on a phone.</p>
+  </section>
+
+  <section class="card game-card">
+    <div class="game-top">
+      <div>Score <b id="score">00000</b></div>
+      <div>Best <b id="best">00000</b></div>
+    </div>
+    <canvas id="game" aria-label="Leaf Hopper game"></canvas>
+    <p class="supported">Space / ↑ / tap to jump. After Game Over, press Space or tap again to restart.</p>
+  </section>
 </main>
+
 <footer id="site-footer" class="site-footer"></footer>
+
 <script src="layout.js"></script>
+<script>
+(function () {
+  const W = 800, H = 260, GROUND = 210;
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+
+  const scoreEl = document.getElementById("score");
+  const bestEl = document.getElementById("best");
+  const pad = n => String(Math.floor(n)).padStart(5, "0");
+  const EMOJI_FONT = "'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif";
+  const PESTS = ["🐛", "🐌", "🦗", "🐞"];
+
+  let best = 0;
+  try { best = Number(localStorage.getItem("leafHopperBest")) || 0; } catch (e) {}
+  bestEl.textContent = pad(best);
+
+  const player = { x: 60, w: 34, h: 38, y: GROUND, vy: 0 };
+  let obstacles, speed, score, nextGap, sinceSpawn, groundOffset;
+  let state = "ready";
+  let last = 0;
+  let overAt = 0;
+
+  function reset() {
+    obstacles = [];
+    speed = 6;
+    score = 0;
+    nextGap = 400;
+    sinceSpawn = 0;
+    groundOffset = 0;
+    player.y = GROUND;
+    player.vy = 0;
+    scoreEl.textContent = pad(0);
+  }
+  reset();
+
+  function jump() {
+    if (state === "ready") {
+      state = "playing";
+      last = performance.now();
+    } else if (state === "over") {
+      if (performance.now() - overAt > 400) {
+        reset();
+        state = "playing";
+        last = performance.now();
+      }
+      return;
+    }
+    if (player.y >= GROUND) player.vy = -12.5;
+  }
+
+  function hits(o) {
+    const a = { x: player.x + 6, y: player.y - player.h + 4, w: player.w - 12, h: player.h - 8 };
+    const b = { x: o.x + 3, y: GROUND - 26, w: 24, h: 26 };
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function gameOver() {
+    state = "over";
+    overAt = performance.now();
+    if (score > best) {
+      best = score;
+      bestEl.textContent = pad(best);
+      try { localStorage.setItem("leafHopperBest", String(Math.floor(best))); } catch (e) {}
+    }
+  }
+
+  function update(step) {
+    speed = Math.min(speed + 0.003 * step, 13);
+    score += speed * 0.04 * step;
+    scoreEl.textContent = pad(score);
+
+    player.vy += 0.65 * step;
+    player.y += player.vy * step;
+    if (player.y > GROUND) { player.y = GROUND; player.vy = 0; }
+
+    groundOffset = (groundOffset + speed * step) % 40;
+
+    sinceSpawn += speed * step;
+    if (sinceSpawn >= nextGap) {
+      obstacles.push({ x: W + 20, e: PESTS[Math.floor(Math.random() * PESTS.length)] });
+      sinceSpawn = 0;
+      nextGap = 380 + Math.random() * 260 + speed * 18;
+    }
+
+    obstacles.forEach(o => { o.x -= speed * step; });
+    obstacles = obstacles.filter(o => o.x > -60);
+
+    if (obstacles.some(hits)) gameOver();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    ctx.strokeStyle = "#0f766e";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND + 2);
+    ctx.lineTo(W, GROUND + 2);
+    ctx.stroke();
+    ctx.fillStyle = "#9fd8c4";
+    for (let x = -groundOffset; x < W; x += 40) ctx.fillRect(x, GROUND + 10, 16, 3);
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "bottom";
+    ctx.font = "40px " + EMOJI_FONT;
+    ctx.fillText("🌱", player.x - 2, player.y + 4);
+    ctx.font = "32px " + EMOJI_FONT;
+    obstacles.forEach(o => ctx.fillText(o.e, o.x - 2, GROUND + 4));
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "#16231d";
+    if (state === "ready") {
+      ctx.font = "600 20px system-ui, sans-serif";
+      ctx.fillText("Press Space or tap to start", W / 2, 90);
+    } else if (state === "over") {
+      ctx.font = "600 24px system-ui, sans-serif";
+      ctx.fillText("Game over", W / 2, 80);
+      ctx.font = "16px system-ui, sans-serif";
+      ctx.fillText("Press Space or tap to play again", W / 2, 110);
+    }
+    ctx.textAlign = "left";
+  }
+
+  function frame(now) {
+    if (state === "playing") {
+      const step = Math.max(0, Math.min((now - last) / 16.667, 2));
+      last = now;
+      update(step);
+    }
+    draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  canvas.addEventListener("pointerdown", e => { e.preventDefault(); jump(); });
+  document.addEventListener("keydown", e => {
+    if (e.code === "Space" || e.code === "ArrowUp") { e.preventDefault(); jump(); }
+  });
+})();
+</script>
 </body>
 </html>
