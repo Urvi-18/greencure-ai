@@ -1,5 +1,6 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+﻿from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from backend.model_utils import predict
@@ -19,7 +20,12 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/app/")
+
+
+@app.get("/health")
 def health():
     return {"status": "ok"}
 
